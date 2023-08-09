@@ -84,7 +84,8 @@ def msg_to_bits(message):
     #decode dec num len(encoding_dict) to bit
     bitstr = ''.join(format(byte, '08b') for byte in len(encoding_dict).to_bytes(4,'big'))
     for k,v in encoding_dict.items():
-        bitstr = bitstr + pad_bits(''.join(format(byte, '08b') for byte in k.to_bytes(1,'big'))) + "01111110" +pad_bits(v) + "01111110"
+        bitstr = bitstr + ''.join(format(byte, '08b') for byte in k.to_bytes(1,'big')) + pad_bits(v) + "01111110"
+        #bitstr = bitstr + pad_bits(''.join(format(byte, '08b') for byte in k.to_bytes(1,'big'))) + "01111110" +pad_bits(v) + "01111110"
     return bitstr + encoded_data
 
 #binary string to message
@@ -93,8 +94,10 @@ def bits_to_msg(bits):
     bits = bits[32:]
     encoding_dict = {}
     for i in range(dict_num):
-        key = int(unpad_bits(bits[:bits.find("01111110")]),2)
-        bits = bits[bits.find("01111110")+8:]
+        key = int(unpad_bits(bits[:8]),2)
+        bits = bits[8:]
+        # key = int(unpad_bits(bits[:bits.find("01111110")]),2)
+        # bits = bits[bits.find("01111110")+8:]
         val = unpad_bits(bits[:bits.find("01111110")])
         bits = bits[bits.find("01111110")+8:]
         encoding_dict[key] = val
