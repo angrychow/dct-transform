@@ -4,6 +4,13 @@ from PIL import Image
 import numpy as np
 
 
+#point selection
+Point_1 = (3,2)
+Point_2 = (5,6)
+Point_3 = (5,2)
+
+threshold = 20
+
 # implement 2D DCT
 def dct2(a):
     return dct(dct(a.T, norm='ortho').T, norm='ortho')
@@ -28,9 +35,7 @@ def encodeImg(img, secret_message, method = 'two-point'):
             dct_array[i:i+8, j:j+8] = dct2(y_array[i:i+8, j:j+8])
 
     # 在 DCT 系数中嵌入信息
-    # 选点：(4,6)、(5,3)、(3,4)
-    # '1': (4,6) > (5,3)
-    # '0': (4,6) <= (5,3)
+    secret_message
     secret_bytes = secret_message.encode('utf-8')
     secret_bits = ''.join(format(byte, '08b') for byte in secret_bytes)
     global bits_a
@@ -40,18 +45,20 @@ def encodeImg(img, secret_message, method = 'two-point'):
         for j in range(0, dct_array.shape[1], 8):
             if len(secret_bits) == 0:
                 break
-            block = dct_array[i:i+8, j:j+8]
-            if dct_array.shape[0] - i < 8 or dct_array.shape[1] - j < 8:
-                break
+            block = np.round(dct_array[i:i+8, j:j+8])
             #chose different encode with different method
             if(method == 'two-point'):
-                if(block[4,6] == block[5,3]):
-                    block[4,6] += 1
-                if((secret_bits[0] == '1') ^ (block[4,6] > block[5,3])):
-                    #switch (4,6) and (5,3)
-                    temp = block[4,6]
-                    block[4,6] = block[5,3]
-                    block[5,3] = temp
+                if(abs(block[Point_1] - block[Point_2]) < threshold):
+                    if(block[Point_1] < block[Point_2]):
+                        block[Point_2] += threshold
+                    else:
+                        block[Point_1] += threshold
+                if((secret_bits[0] == '1') ^ (block[Point_1] > block[Point_2])):
+                    #switch Point_1 and Point_3
+                    temp = block[Point_1]
+                    block[Point_1] = block[Point_2]
+                    block[Point_2] = temp
+
 
             dct_array[i:i+8, j:j+8] = block
             secret_bits = secret_bits[1:]
@@ -83,15 +90,14 @@ def decodeImg(img, method = 'two-point'):
             dct_array[i:i+8, j:j+8] = dct2(y_array[i:i+8, j:j+8])
     # 解码隐写内容
     secret_bits = ''
-    print(dct_array.shape)
     for i in range(0, dct_array.shape[0], 8):
         for j in range(0, dct_array.shape[1], 8):
-            block = dct_array[i:i+8, j:j+8]
+            block = (dct_array[i:i+8, j:j+8])
             if dct_array.shape[0] - i < 8 or dct_array.shape[1] - j < 8:
                 break
             #chose different encode with different method
             if(method == 'two-point'):
-                if(block[4,6] > block[5,3]):
+                if(block[Point_1] > block[Point_2]):
                     secret_bits += '1'
                 else:
                     secret_bits += '0'
@@ -100,8 +106,16 @@ def decodeImg(img, method = 'two-point'):
     secret_bytes = []
     for i in range(0, len(secret_bits), 8):
         secret_bytes.append(int(secret_bits[i:i+8], 2))
-    # secret_message = bytes(secret_bytes).decode('utf-8')
+    secret_message = bytes(secret_bytes).decode('utf-8', errors='ignore')
     return secret_message
+
+def cal_err_rate(origin, new, len):
+    err_cnt = 0
+    for i in range(len):
+        if(origin[i] != new[i]):
+            err_cnt += 1
+    return err_cnt/len
+
 
 # 加载原始 JPEG 图像
 img = Image.open('test.jpg').convert('YCbCr')
@@ -122,19 +136,33 @@ print(msg)
 with open("decode.txt", "w", encoding="utf-8") as f:
     f.write(msg)
 
-from difflib import SequenceMatcher
+print('error rate :', cal_err_rate(bits_a, bits_b, len(bits_a)))
 
-def find_string_diff(str1, str2):
-    matcher = SequenceMatcher(None, str1, str2)
-    for opcode, start1, end1, start2, end2 in matcher.get_opcodes():
-        if opcode == 'equal':
-            print("相同: ", str1[start1:end1])
-        elif opcode == 'insert':
-            print("插入: ", str2[start2:end2])
-        elif opcode == 'delete':
-            print("删除: ", str1[start1:end1])
-        elif opcode == 'replace':
-            print("替换: ", str1[start1:end1], " -> ", str2[start2:end2])
+
+
+
+
+
+
+
+
+
+
+
+
+# from difflib import SequenceMatcher
+
+# def find_string_diff(str1, str2):
+#     matcher = SequenceMatcher(None, str1, str2)
+#     for opcode, start1, end1, start2, end2 in matcher.get_opcodes():
+#         if opcode == 'equal':
+#             print("相同: ", str1[start1:end1])
+#         elif opcode == 'insert':
+#             print("插入: ", str2[start2:end2])
+#         elif opcode == 'delete':
+#             print("删除: ", str1[start1:end1])
+#         elif opcode == 'replace':
+#             print("替换: ", str1[start1:end1], " -> ", str2[start2:end2])
 
 # 示例用法
-# 
+# find_string_diff(bits_a, bits_b)
