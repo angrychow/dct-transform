@@ -5,11 +5,15 @@ import numpy as np
 
 
 #point selection
-Point_1 = (3,2)
-Point_2 = (5,6)
+Point_1 = (6,5)
+Point_2 = (5,4)
 Point_3 = (5,2)
 
-threshold = 20
+threshold = 55
+
+_ = bytearray()
+_.append(0)
+special_char = _.decode("utf-8")
 
 # implement 2D DCT
 def dct2(a):
@@ -35,7 +39,7 @@ def encodeImg(img, secret_message, method = 'two-point'):
             dct_array[i:i+8, j:j+8] = dct2(y_array[i:i+8, j:j+8])
 
     # 在 DCT 系数中嵌入信息
-    secret_message
+    secret_message = secret_message + special_char
     secret_bytes = secret_message.encode('utf-8')
     secret_bits = ''.join(format(byte, '08b') for byte in secret_bytes)
     global bits_a
@@ -50,9 +54,9 @@ def encodeImg(img, secret_message, method = 'two-point'):
             if(method == 'two-point'):
                 if(abs(block[Point_1] - block[Point_2]) < threshold):
                     if(block[Point_1] < block[Point_2]):
-                        block[Point_2] += threshold
+                        block[Point_2] += threshold - abs(block[Point_1] - block[Point_2])
                     else:
-                        block[Point_1] += threshold
+                        block[Point_1] += threshold - abs(block[Point_1] - block[Point_2])
                 if((secret_bits[0] == '1') ^ (block[Point_1] > block[Point_2])):
                     #switch Point_1 and Point_3
                     temp = block[Point_1]
@@ -107,7 +111,7 @@ def decodeImg(img, method = 'two-point'):
     for i in range(0, len(secret_bits), 8):
         secret_bytes.append(int(secret_bits[i:i+8], 2))
     secret_message = bytes(secret_bytes).decode('utf-8', errors='ignore')
-    return secret_message
+    return secret_message[0:secret_message.find(special_char)]
 
 def cal_err_rate(origin, new, len):
     err_cnt = 0
