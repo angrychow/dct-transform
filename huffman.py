@@ -19,6 +19,7 @@ def huffman_encoding(message):
     #get the encoding dictionary
     encoding_dict = dict(heapq.heappop(heap)[1:])
     #encode the message
+    # print(encoding_dict)
     encoded_message = "".join(encoding_dict[character] for character in message)
     return encoding_dict, encoded_message
 
@@ -81,8 +82,9 @@ def unpad_bits(data):
 def msg_to_bits(message):
     #DICT_NUM(8) (KEY 01111110 VAL 01111110)*DICT_NUM DATA
     encoding_dict, encoded_data = huffman_encoding(message.encode('utf-8'))
+    # print(message.encode('utf-8').decode('utf-8'))
     #decode dec num len(encoding_dict) to bit
-    bitstr = ''.join(format(byte, '08b') for byte in len(encoding_dict).to_bytes(4,'big'))
+    bitstr = ''.join(format(byte, '08b') for byte in len(encoding_dict).to_bytes(1,'big'))
     for k,v in encoding_dict.items():
         bitstr = bitstr + ''.join(format(byte, '08b') for byte in k.to_bytes(1,'big')) + pad_bits(v) + "01111110"
         #bitstr = bitstr + pad_bits(''.join(format(byte, '08b') for byte in k.to_bytes(1,'big'))) + "01111110" +pad_bits(v) + "01111110"
@@ -90,26 +92,39 @@ def msg_to_bits(message):
 
 #binary string to message
 def bits_to_msg(bits):
-    dict_num = int(bits[:32],2)
-    bits = bits[32:]
+    dict_num = int(bits[:8],2)
+    bits = bits[8:]
+    # print(bits)
+    if(dict_num > 256):
+        print("dict_num error")
+        return ""
     encoding_dict = {}
     for i in range(dict_num):
-        key = int(unpad_bits(bits[:8]),2)
+        key_bits = bits[:8]
+        if(key_bits == ''):
+            print("key_bits error")
+            return ""
+        # print(key_bits)
+        key = int(key_bits,2)
         bits = bits[8:]
         # key = int(unpad_bits(bits[:bits.find("01111110")]),2)
         # bits = bits[bits.find("01111110")+8:]
         val = unpad_bits(bits[:bits.find("01111110")])
         bits = bits[bits.find("01111110")+8:]
         encoding_dict[key] = val
-    return huffman_decoding(encoding_dict, bits).decode('utf-8')
+    # print(encoding_dict)
+    return huffman_decoding(encoding_dict, bits).decode('utf-8',errors = 'ignore')
 
-data = " Modern literature in most countries deals with social issues. For example, many contemporary novels of Africa depict the lives of ordinary people struggling against adversity. Further-more, poetry from America speaks out against social and economic oppression. In still another instance, modern European drama enacts the fate of the working man in his drab confrontation with life. Even films, popular songs, and folk dramas from all around the world, tell the story of the little man and his battle against the giants of impersonal corporations, remote governments, or aggressive neighboring nations."
-bits = msg_to_bits(data)
+# with open("word.txt", "r", encoding="utf-8") as f:
+#     data = f.read()
+# data = "律依侵"
+# print(data.encode('utf-8'))
+# bits = msg_to_bits(data)
 
-print(len(bytes(data, 'utf-8'))*8)
-print(len(bits))
-decoded_data = bits_to_msg(bits)
-print("Decoded Data:", decoded_data)
+# print(len(bytes(data, 'utf-8'))*8)
+# print(len(bits))
+# # decoded_data = bits_to_msg(bits)
+# # # print("Decoded Data:", decoded_data)
 
 
 
@@ -128,4 +143,4 @@ def find_string_diff(str1, str2):
             print("替换: ", str1[start1:end1], " -> ", str2[start2:end2])
 
 # 示例用法
-find_string_diff(data, decoded_data)
+# find_string_diff(data, decoded_data)
